@@ -46,9 +46,9 @@ module cpu_accel_bfm #(
     ctrl.done = 1'b1;
   end
 
-  // lee "buf.size()" bytes desde "base", fragmentando en rafagas de max 1024 B
-  task automatic leer_bloque(bit [ADDR_WIDTH-1:0] base, ref byte unsigned buf[]);
-    int unsigned total = buf.size();
+  // lee "datos.size()" bytes desde "base", fragmentando en rafagas de max 1024 B
+  task automatic leer_bloque(bit [ADDR_WIDTH-1:0] base, ref byte unsigned datos[]);
+    int unsigned total = datos.size();
     int unsigned hecho = 0;
 
     while (hecho < total) begin
@@ -70,16 +70,16 @@ module cpu_accel_bfm #(
         while (!axi.rvalid) @(posedge axi.clk);
         for (int b = 0; b < STRB_WIDTH; b++) begin
           int idx = hecho + i * STRB_WIDTH + b;
-          if (idx < hecho + n) buf[idx] = axi.rdata[8*b +: 8];
+          if (idx < hecho + n) datos[idx] = axi.rdata[8*b +: 8];
         end
       end
       hecho += n;
     end
   endtask
 
-  // escribe "buf" completo a partir de "base", fragmentando en rafagas de max 1024 B
-  task automatic escribir_bloque(bit [ADDR_WIDTH-1:0] base, ref byte unsigned buf[]);
-    int unsigned total = buf.size();
+  // escribe "datos" completo a partir de "base", fragmentando en rafagas de max 1024 B
+  task automatic escribir_bloque(bit [ADDR_WIDTH-1:0] base, ref byte unsigned datos[]);
+    int unsigned total = datos.size();
     int unsigned hecho = 0;
 
     while (hecho < total) begin
@@ -102,7 +102,7 @@ module cpu_accel_bfm #(
         for (int b = 0; b < STRB_WIDTH; b++) begin
           int idx = hecho + i * STRB_WIDTH + b;
           if (idx < hecho + n) begin
-            beat_data[8*b +: 8] = buf[idx];
+            beat_data[8*b +: 8] = datos[idx];
             beat_strb[b]        = 1'b1;
           end
         end
