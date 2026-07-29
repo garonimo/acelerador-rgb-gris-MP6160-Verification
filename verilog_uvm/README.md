@@ -2,8 +2,7 @@
 
 Integra el módulo de RAM del sistema TLM de [`Basic_cpu-main/`](../Basic_cpu-main/)
 como un esclavo AXI4 Full en SystemVerilog, verificado con UVM, y conecta la
-lógica de CPU/acelerador de esa misma evaluación por DPI-C. Ver el planeamiento
-completo en [`verificacion_copilot.md`](../verificacion_copilot.md).
+lógica de CPU/acelerador de esa misma evaluación por DPI-C. 
 
 No depende de gem5 ni de un kernel SystemC vivo: pensado para correr en
 **EDA Playground** (ver [`scripts/run_edaplayground.md`](scripts/run_edaplayground.md)).
@@ -104,9 +103,7 @@ Igual al de [`Basic_cpu-main/include/common.h`](../Basic_cpu-main/include/common
 
 ## Declaración de uso de IA
 
-Este módulo (RTL, UVM, DPI, modelo dorado, scripts y esta documentación) se
-diseñó e implementó con asistencia de GitHub Copilot (agente en VS Code),
+El planeamiento y estructura de este módulo (RTL, UVM, DPI, modelo dorado y scripts) se
+hizo con asistencia de GitHub Copilot (agente en VS Code),
 a partir del enunciado de la evaluación y del análisis del código ya existente
-en el repositorio (`Basic_cpu-main/`, `hls/`, `virtual_prototype/`). El
-planeamiento previo a la implementación está documentado en
-[`verificacion_copilot.md`](../verificacion_copilot.md).
+en el repositorio (`Basic_cpu-main/`, `hls/`, `virtual_prototype/`). También se utilizó la misma herramienta para la depuración y mejora de secciones del código creado. 
