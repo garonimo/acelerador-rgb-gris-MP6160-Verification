@@ -65,16 +65,27 @@ trabajo para que el `` `include `` los encuentre.
 > fijo sin importar la configuración del panel.
 
 **Archivo DPI (C++)**:
-- `dpi/dpi_accel_glue.cpp` — súbelo en el panel "Testbench" o en la sección de
-  archivos C/C++ si el simulador la separa (VCS/Xcelium en EDA Playground
-  detectan la extensión `.cpp` y lo compilan/enlazan automáticamente junto al
-  resto, sin flags adicionales). **No lo marques como "include file"** —
-  a diferencia de los `.sv` de la lista de arriba, este archivo sí debe
-  compilarse normalmente para que VCS/Xcelium generen el objeto DPI y lo
-  enlacen; si quedó marcado como include por error, el síntoma es un
-  `Error-[DPI-DIFNF] DPI import function not found` al correr.
+- `dpi/dpi_accel_glue.cpp` — súbelo en el panel "Testbench" (o en la sección
+  de archivos C/C++ si el simulador la separa). **No lo marques como
+  "include file"** — a diferencia de los `.sv` de la lista de arriba, este
+  archivo sí debe compilarse normalmente para que VCS/Xcelium generen el
+  objeto DPI y lo enlacen; si quedó marcado como include por error, el
+  síntoma es un `Error-[DPI-DIFNF] DPI import function not found` al correr.
 - `dpi/dpi_accel_glue.h` — solo hace falta si `dpi_accel_glue.cpp` lo
   incluye por ruta relativa; súbelo junto al `.cpp` en el mismo panel.
+- **Flag de compilación necesario**: EDA Playground no detecta ni enlaza el
+  `.cpp` automáticamente solo por estar subido. Hay que agregarlo a mano en
+  "Tools & Simulators" → **"Compile Options"**:
+
+  ```
+  -sysc +incdir+. dpi_accel_glue.cpp
+  ```
+
+  Sin este flag, VCS compila y elabora el testbench sin error, pero falla en
+  tiempo de ejecución con `Error-[DPI-DIFNF] DPI import function not found`
+  (la firma DPI existe en el `.sv`, pero no hay objeto C++ enlazado que la
+  implemente). Con el flag, el mismo `.cpp` que ya estaba subido se compila
+  y se enlaza correctamente.
 
 ## 3. Archivos de datos (vectores)
 
