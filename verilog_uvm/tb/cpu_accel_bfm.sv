@@ -38,9 +38,12 @@ module cpu_accel_bfm #(
     gris_verif = new[BYTES_GRIS];
 
     leer_bloque(INPUT_BASE, rgb_buf);
+    $display("DEBUG-BFM rgb_buf[0:11]  = %p", rgb_buf[0:11]);
     dpi_rgb_to_gray(rgb_buf, gris_buf, NPIX_TEST);
+    $display("DEBUG-BFM gris_buf[0:7]  = %p", gris_buf[0:7]);
     escribir_bloque(OUTPUT_BASE, gris_buf);
     leer_bloque(OUTPUT_BASE, gris_verif);
+    $display("DEBUG-BFM gris_verif[0:7]= %p", gris_verif[0:7]);
     void'(dpi_save_output(RUTA_SALIDA, gris_verif, BYTES_GRIS));
 
     ctrl.done = 1'b1;
