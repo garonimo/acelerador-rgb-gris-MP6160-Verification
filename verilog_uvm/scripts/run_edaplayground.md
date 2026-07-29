@@ -39,15 +39,23 @@ el orden correcto, **sin importar el orden del panel**.
   que `axi_pkg.sv`/`tb_pkg.sv` incluyen (`axi_sequencer.sv`, `axi_driver.sv`,
   `axi_monitor.sv`, `axi_agent.sv`, `seq_lib.sv`, `scoreboard.sv`, `env.sv`,
   `base_test.sv`, `rgb2gray_uvm_test.sv`).
-- **Importante**: estos 14 archivos deben marcarse como *"Add as include
-  file"* al subirlos (o desmarcar la opción "Compile"/"Design file" que
-  ofrezca el diálogo de subida), **no** como archivo de diseño/testbench
-  normal. Si se compilan también por su cuenta, sus paquetes o clases quedan
-  declarados dos veces (error de "ya declarado"/"redefinition"). Si tu
-  cuenta de EDA Playground no distingue esa opción por archivo, alcanza con
-  que **no** aparezcan en la lista de archivos "a compilar" del panel —
-  únicamente deben estar presentes en el directorio de trabajo para que el
-  `` `include `` los encuentre.
+- **Importante**: estos 14 archivos (todos `.sv`) deben marcarse como *"Add
+as include file"* al subirlos (o desmarcar la opción "Compile"/"Design
+file" que ofrezca el diálogo de subida), **no** como archivo de diseño/
+testbench normal. Si se compilan también por su cuenta, sus paquetes o
+clases quedan declarados dos veces (error de "ya declarado"/
+"redefinition"). Si tu cuenta de EDA Playground no distingue esa opción
+por archivo, alcanza con que **no** aparezcan en la lista de archivos "a
+compilar" del panel — únicamente deben estar presentes en el directorio de
+trabajo para que el `` `include `` los encuentre.
+
+> ⚠️ Esta marca de "include file" es **solo para los 14 `.sv` de arriba**.
+> El archivo DPI (`dpi_accel_glue.cpp`, ver abajo) es C++, no SystemVerilog:
+> `` `include `` no aplica a él. Si lo marcas como "include file" por
+> error, VCS no lo compila/enlaza como objeto DPI y falla en tiempo de
+> elaboración con `Error-[DPI-DIFNF] DPI import function not found` (aunque
+> el archivo esté subido y se vea en la lista). Debe quedar como archivo de
+> compilación normal.
 
 > Por qué este cambio: subir `axi_pkg.sv`/`tb_pkg.sv` como archivos de
 > testbench "normales" deja su orden de compilación en manos de EDA
@@ -60,7 +68,13 @@ el orden correcto, **sin importar el orden del panel**.
 - `dpi/dpi_accel_glue.cpp` — súbelo en el panel "Testbench" o en la sección de
   archivos C/C++ si el simulador la separa (VCS/Xcelium en EDA Playground
   detectan la extensión `.cpp` y lo compilan/enlazan automáticamente junto al
-  resto, sin flags adicionales).
+  resto, sin flags adicionales). **No lo marques como "include file"** —
+  a diferencia de los `.sv` de la lista de arriba, este archivo sí debe
+  compilarse normalmente para que VCS/Xcelium generen el objeto DPI y lo
+  enlacen; si quedó marcado como include por error, el síntoma es un
+  `Error-[DPI-DIFNF] DPI import function not found` al correr.
+- `dpi/dpi_accel_glue.h` — solo hace falta si `dpi_accel_glue.cpp` lo
+  incluye por ruta relativa; súbelo junto al `.cpp` en el mismo panel.
 
 ## 3. Archivos de datos (vectores)
 
