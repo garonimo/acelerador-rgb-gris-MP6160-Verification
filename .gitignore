@@ -17,6 +17,20 @@ hls/tb/vectors/out_crop_hls.raw
 vitis_hls.log
 *.tcl.log
 
+# ---- artefactos de EC4 (verilog_uvm) ----
+verilog_uvm/golden/build/
+verilog_uvm/golden/golden_ram_in_region.bin
+verilog_uvm/golden/golden_ram_out_region.bin
+verilog_uvm/golden/golden_full_output_1080p_gray.raw
+verilog_uvm/dpi/build/
+verilog_uvm/*.log
+verilog_uvm/simv*
+verilog_uvm/csrc/
+verilog_uvm/*.vpd
+verilog_uvm/*.vcd
+verilog_uvm/work/
+verilog_uvm/output_crop_gray.raw
+
 # ---- guias explicativas (no se versionan) ----
 docs/GUIA_*.md
 
