@@ -365,4 +365,4 @@ comparación dentro del propio testbench, en vez de compararla manualmente con `
 ---
 
 ## 11. Declaración sobre el uso de Inteligencia Artificial
-
+Se utilizó la herramienta de github copilot para el planeamiento de como desarrollar esta tarea, desarrollo de secciones de codigo, desarrollo de scripts, creacion de parte de la documentacion, depuracion y analisos de codigo.
