@@ -1,24 +1,22 @@
 # filelist.f
 # Orden de compilación para simuladores que se invocan desde línea de
-# comandos (VCS, Xcelium, Questa). En EDA Playground no se usa este archivo:
-# ahí basta con arrastrar los archivos a "Design"/"Testbench" (ver
-# run_edaplayground.md), EDA Playground los compila en el orden correcto
-# automáticamente si uvm_pkg está antes y axi_pkg no se repite.
+# comandos (VCS, Xcelium, Questa). En EDA Playground no se usa este archivo
+# (ver run_edaplayground.md).
+#
+# tb_top.sv se incluye a si mismo (via `include) axi_if.sv, bfm_ctrl_if.sv,
+# axi_pkg.sv, tb_pkg.sv y cpu_accel_bfm.sv, en ese orden -- por eso NO se
+# listan aparte aqui: listarlos tambien como archivos de diseño duplicaria
+# la compilacion de sus paquetes/modulos.
 
 +incdir+../rtl
 +incdir+../tb
 
 ../rtl/axi_ram.sv
 
-../tb/axi_if.sv
-../tb/bfm_ctrl_if.sv
-../tb/axi_pkg.sv
-../tb/tb_pkg.sv
-../tb/cpu_accel_bfm.sv
 ../tb/tb_top.sv
 
-# nota: axi_sequencer.sv, axi_driver.sv, axi_monitor.sv, axi_agent.sv,
-# seq_lib.sv y scoreboard.sv NO se listan aparte: axi_pkg.sv los incluye
-# con `include (deben quedar en el mismo directorio, ver +incdir arriba).
-# lo mismo para env.sv, base_test.sv y rgb2gray_uvm_test.sv, incluidos
-# dentro de tb_pkg.sv.
+# nota: axi_if.sv, bfm_ctrl_if.sv, axi_pkg.sv, tb_pkg.sv, cpu_accel_bfm.sv,
+# y a su vez axi_sequencer.sv, axi_driver.sv, axi_monitor.sv, axi_agent.sv,
+# seq_lib.sv, scoreboard.sv, env.sv, base_test.sv, rgb2gray_uvm_test.sv,
+# se resuelven todos por `include (ver +incdir arriba). Deben existir en
+# ../tb/ pero no se pasan como fuentes separadas al simulador.

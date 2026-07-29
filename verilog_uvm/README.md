@@ -27,7 +27,12 @@ verilog_uvm/
 │   │   ├── base_test.sv
 │   │   └── rgb2gray_uvm_test.sv
 │   ├── cpu_accel_bfm.sv      "CPU + acelerador": maestro AXI4 + DPI
-│   └── tb_top.sv             Reloj/reset, mux de bus, instancias, run_test()
+│   └── tb_top.sv             Reloj/reset, mux de bus, instancias, run_test().
+│                             Se incluye a si mismo (`include) axi_if.sv,
+│                             bfm_ctrl_if.sv, axi_pkg.sv, tb_pkg.sv y
+│                             cpu_accel_bfm.sv, para no depender del orden
+│                             de compilación de archivos separados (clave
+│                             en EDA Playground, ver Sec. "Cómo correr").
 ├── dpi/dpi_accel_glue.{h,cpp} extern "C": rgb_a_gris, carga/guarda archivo
 ├── golden/golden_dump.cpp    Genera el modelo dorado (offline, ver su README)
 ├── vectors/                  input_crop.rgb + los dos volcados dorados

@@ -2,6 +2,18 @@
 // Top de simulacion: reloj/reset, las 3 instancias de axi_if (agente UVM,
 // cpu_accel_bfm, DUT), el mux estatico que las une (nunca hay dos maestros
 // activos a la vez, ver plan §5), el DUT y el BFM, y el arranque de UVM.
+//
+// Este archivo se incluye a si mismo todo lo demas (interfaces, paquetes y
+// el bfm) por `include, en el orden correcto, en vez de depender del orden
+// de compilacion que le de el simulador o EDA Playground a los archivos
+// listados por separado. Por eso el resto de archivos .sv del testbench
+// deben subirse como "include file" (no como archivo de diseño aparte):
+// si tambien se compilaran solos, sus paquetes/clases quedarian duplicados.
+`include "axi_if.sv"
+`include "bfm_ctrl_if.sv"
+`include "axi_pkg.sv"
+`include "tb_pkg.sv"
+`include "cpu_accel_bfm.sv"
 
 module tb_top;
   import uvm_pkg::*;

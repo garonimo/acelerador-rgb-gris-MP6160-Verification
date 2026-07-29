@@ -19,25 +19,42 @@ simulador elegido).
 
 ## 2. Archivos y en qué panel van
 
-**Panel "Design"** (RTL, el DUT):
-- `rtl/axi_ram.sv`
+EDA Playground obliga a que el archivo top de cada panel se llame
+`design.sv` (Design) y `testbench.sv` (Testbench). Para no depender del
+orden en que EDA Playground compile el resto de archivos (fuente de los
+errores típicos `Package not defined` / identificadores no declarados),
+`testbench.sv` se incluye a sí mismo todo lo demás con `` `include ``, en
+el orden correcto, **sin importar el orden del panel**.
 
-**Panel "Testbench"** (SystemVerilog + UVM), **en este orden**:
-1. `tb/axi_if.sv`
-2. `tb/bfm_ctrl_if.sv`
-3. `tb/axi_pkg.sv`
-4. `tb/tb_pkg.sv`
-5. `tb/cpu_accel_bfm.sv`
-6. `tb/tb_top.sv`
+**Panel "Design"**:
+- Contenido de `rtl/axi_ram.sv` → pegar/subir como `design.sv`.
 
-> `tb/axi_pkg.sv` incluye por `` `include `` a `axi_sequencer.sv`, `axi_driver.sv`,
-> `axi_monitor.sv`, `axi_agent.sv`, `seq_lib.sv` y `scoreboard.sv`; `tb/tb_pkg.sv`
-> incluye a `env.sv`, `base_test.sv` y `rgb2gray_uvm_test.sv`. **Súbelos
-> también** (en cualquier panel, EDA Playground los resuelve por nombre porque
-> quedan todos en el mismo directorio de compilación), pero **no los agregues
-> a la lista de compilación como módulos aparte** — si el simulador se queja de
-> clases duplicadas, usa "Add as include file" en vez de "Add as design file"
-> para esos 9 archivos.
+**Panel "Testbench"**:
+- Contenido de `tb/tb_top.sv` → pegar/subir como `testbench.sv` (este archivo
+  ya trae al inicio `` `include "axi_if.sv" ``, `` `include "bfm_ctrl_if.sv" ``,
+  `` `include "axi_pkg.sv" ``, `` `include "tb_pkg.sv" ``,
+  `` `include "cpu_accel_bfm.sv" ``).
+- Súbelos también, **con su nombre original** (`axi_if.sv`, `bfm_ctrl_if.sv`,
+  `axi_pkg.sv`, `tb_pkg.sv`, `cpu_accel_bfm.sv`) y, a su vez, los 9 archivos
+  que `axi_pkg.sv`/`tb_pkg.sv` incluyen (`axi_sequencer.sv`, `axi_driver.sv`,
+  `axi_monitor.sv`, `axi_agent.sv`, `seq_lib.sv`, `scoreboard.sv`, `env.sv`,
+  `base_test.sv`, `rgb2gray_uvm_test.sv`).
+- **Importante**: estos 14 archivos deben marcarse como *"Add as include
+  file"* al subirlos (o desmarcar la opción "Compile"/"Design file" que
+  ofrezca el diálogo de subida), **no** como archivo de diseño/testbench
+  normal. Si se compilan también por su cuenta, sus paquetes o clases quedan
+  declarados dos veces (error de "ya declarado"/"redefinition"). Si tu
+  cuenta de EDA Playground no distingue esa opción por archivo, alcanza con
+  que **no** aparezcan en la lista de archivos "a compilar" del panel —
+  únicamente deben estar presentes en el directorio de trabajo para que el
+  `` `include `` los encuentre.
+
+> Por qué este cambio: subir `axi_pkg.sv`/`tb_pkg.sv` como archivos de
+> testbench "normales" deja su orden de compilación en manos de EDA
+> Playground, que no siempre los compila antes que `testbench.sv` — de ahí
+> errores como `Package not defined` o `ADDR_WIDTH`/`DATA_WIDTH` no
+> declarados. Incluyéndolos desde dentro de `testbench.sv` el orden queda
+> fijo sin importar la configuración del panel.
 
 **Archivo DPI (C++)**:
 - `dpi/dpi_accel_glue.cpp` — súbelo en el panel "Testbench" o en la sección de
