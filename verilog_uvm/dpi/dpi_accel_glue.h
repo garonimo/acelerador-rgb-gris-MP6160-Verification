@@ -1,8 +1,13 @@
 // dpi_accel_glue.h
 // Firmas DPI-C expuestas a SystemVerilog. La logica de cada funcion es una
 // copia literal de Basic_cpu-main/include/accelerator.h (rgb_a_gris) y de
-// Basic_cpu-main/include/storage.h (carga/guardado de archivo); no se
-// modifica el comportamiento, solo se expone sin dependencias de SystemC/TLM.
+// Basic_cpu-main/include/storage.h (guardado de archivo); no se modifica el
+// comportamiento, solo se expone sin dependencias de SystemC/TLM.
+//
+// Nota: la carga de vectores de entrada (input_crop.hex, golden_*.hex) ya
+// NO usa DPI: se hace con $readmemh sobre archivos de texto hexadecimal,
+// porque subir un archivo binario a EDA Playground corrompe bytes no-ASCII
+// (se observo el reemplazo UTF-8 U+FFFD). $readmemh evita ese problema.
 
 #ifndef DPI_ACCEL_GLUE_H
 #define DPI_ACCEL_GLUE_H
@@ -16,11 +21,6 @@ extern "C" {
 void dpi_rgb_to_gray(const svOpenArrayHandle rgb,
                       svOpenArrayHandle       gris,
                       int                     npix);
-
-// carga un archivo binario completo a un arreglo SV, copia literal de la
-// carga que hace el constructor de Storage en Basic_cpu-main/include/storage.h.
-// devuelve la cantidad de bytes leidos, o -1 si no se pudo abrir el archivo.
-int dpi_load_file(const char* ruta, svOpenArrayHandle datos, int max_len);
 
 // guarda un arreglo SV completo a un archivo binario, copia literal de la
 // rama WRITE de Storage::b_transport en Basic_cpu-main/include/storage.h.

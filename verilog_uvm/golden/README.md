@@ -1,9 +1,11 @@
 # Modelo dorado (`golden_dump.cpp`)
 
 Genera los dos binarios que el `scoreboard` de UVM usa como referencia:
-`golden_ram_in_region.bin` y `golden_ram_out_region.bin` (ya están en
-[`../vectors/`](../vectors/), no hace falta regenerarlos salvo que cambie
-la imagen de entrada o `Basic_cpu-main`).
+`golden_ram_in_region.bin` y `golden_ram_out_region.bin`. Ya están
+convertidos a texto hexadecimal en [`../vectors/`](../vectors/)
+(`golden_ram_in_region.hex` / `golden_ram_out_region.hex`, junto con
+`input_crop.hex`) — no hace falta regenerarlos salvo que cambie la imagen
+de entrada o `Basic_cpu-main`.
 
 ## Qué hace
 
@@ -30,6 +32,16 @@ rm -f golden_ram_in_region.bin golden_ram_out_region.bin golden_full_output_1080
 
 Requiere `SYSTEMC_HOME` apuntando a una instalación de SystemC (la misma
 que usa `Basic_cpu-main/CMakeLists.txt`).
+
+**Después, convertir a hexadecimal** (el testbench UVM carga los vectores
+con `$readmemh`, no con el binario original — ver [`../scripts/run_edaplayground.md`](../scripts/run_edaplayground.md)
+para la razón: subir binarios a EDA Playground corrompe los bytes no-ASCII):
+
+```bash
+cd ../vectors
+xxd -p -c1 golden_ram_in_region.bin  > golden_ram_in_region.hex
+xxd -p -c1 golden_ram_out_region.bin > golden_ram_out_region.hex
+```
 
 ## Validación cruzada
 

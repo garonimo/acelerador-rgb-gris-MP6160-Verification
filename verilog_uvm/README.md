@@ -33,9 +33,11 @@ verilog_uvm/
 │                             cpu_accel_bfm.sv, para no depender del orden
 │                             de compilación de archivos separados (clave
 │                             en EDA Playground, ver Sec. "Cómo correr").
-├── dpi/dpi_accel_glue.{h,cpp} extern "C": rgb_a_gris, carga/guarda archivo
+├── dpi/dpi_accel_glue.{h,cpp} extern "C": rgb_a_gris, guardar archivo (salida)
 ├── golden/golden_dump.cpp    Genera el modelo dorado (offline, ver su README)
-├── vectors/                  input_crop.rgb + los dos volcados dorados
+├── vectors/                  input_crop.hex + los dos volcados dorados en hex
+│                             (texto ASCII, cargados con $readmemh; ver Sec.
+│                             "Alcance y decisiones registradas")
 └── scripts/                  filelist.f, build_dpi.sh, run_*.sh, run_edaplayground.md
 ```
 
@@ -53,14 +55,15 @@ test lo garantiza):
  (write/read_check) │ axi_ram  │            (DPI: rgb_a_gris, │
                      │  (DUT)   │             guardar archivo) │
         └───────────►└──────────┘◄───────────────────────────┘
-              scoreboard compara contra golden_ram_*_region.bin
+              scoreboard compara contra golden_ram_*_region.hex
               (volcado offline de Ram::data en Basic_cpu-main)
 ```
 
 ## Flujo (dado por el enunciado)
 
-1. **Carga**: el agente UVM (`write_image_seq`) escribe `input_crop.rgb` en
-   `INPUT_BASE` (= `map::DIR_IMG_IN`) por AXI4.
+1. **Carga**: el agente UVM (`write_image_seq`) escribe `input_crop.hex`
+   (cargado con `$readmemh`, texto ASCII) en `INPUT_BASE` (= `map::DIR_IMG_IN`)
+   por AXI4.
 2. **Cómputo**: se cede el bus a `cpu_accel_bfm`, que lee `INPUT_BASE`,
    convierte a gris por DPI (`dpi_rgb_to_gray`, copia literal de
    `Accelerator::rgb_a_gris`) y escribe el resultado en `OUTPUT_BASE`
@@ -69,10 +72,10 @@ test lo garantiza):
    `dpi_save_output` para escribir `output_crop_gray.raw` (almacenamiento
    permanente), igual que `Storage::b_transport` en modo escritura.
 4. **Verificación**: el agente UVM relee `INPUT_BASE` y `OUTPUT_BASE`; el
-   `scoreboard` compara byte a byte contra `golden_ram_in_region.bin` /
-   `golden_ram_out_region.bin` (volcado de la RAM real de `Basic_cpu-main`,
-   ver [`golden/README.md`](golden/README.md)) y emite `UVM_ERROR`/`UVM_FATAL`
-   si algo no coincide.
+   `scoreboard` compara byte a byte contra `golden_ram_in_region.hex` /
+   `golden_ram_out_region.hex` (volcado de la RAM real de `Basic_cpu-main`,
+   cargado también con `$readmemh`; ver [`golden/README.md`](golden/README.md))
+   y emite `UVM_ERROR`/`UVM_FATAL` si algo no coincide.
 
 ## Mapa de memoria
 
@@ -84,7 +87,7 @@ Igual al de [`Basic_cpu-main/include/common.h`](../Basic_cpu-main/include/common
 | `OUTPUT_BASE` (`map::DIR_IMG_OUT`) | `0x0080_0000` |
 | Ancho de datos AXI | 32 bits (`STRB_WIDTH` = 4) |
 | Tamaño de RAM representado | 64 MiB (backing disperso, solo se reservan las posiciones escritas) |
-| Recorte de prueba | 8192 píxeles (24 576 B RGB / 8192 B gris), igual a `hls/tb/vectors/input_crop.rgb` |
+| Recorte de prueba | 8192 píxeles (24 576 B RGB / 8192 B gris), igual a `hls/tb/vectors/input_crop.rgb` (vectores en `vectors/*.hex`, ver abajo) |
 
 ## Cómo correr
 
@@ -104,6 +107,11 @@ Igual al de [`Basic_cpu-main/include/common.h`](../Basic_cpu-main/include/common
   lógica ya verificada de `Basic_cpu-main` se reutiliza dos veces sin
   modificarla: como cuerpo literal de las funciones DPI, y como generador
   offline del modelo dorado (`golden_dump.cpp`).
+- Los vectores (`input_crop.hex` y los dos volcados dorados) se cargan con
+  `$readmemh` desde texto hexadecimal ASCII, no con DPI ni como archivo
+  binario: subir un binario a EDA Playground corrompe los bytes con el bit
+  alto en 1 (la plataforma los trata como texto UTF-8 y los reemplaza por
+  la secuencia U+FFFD). Por eso `dpi_load_file` se eliminó del puente DPI.
 - `Basic_cpu-main/` y la evaluación de HLS/gem5 no se modifican en absoluto.
 
 ## Declaración de uso de IA

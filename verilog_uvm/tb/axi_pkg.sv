@@ -20,12 +20,6 @@ package axi_pkg;
   parameter int BYTES_RGB    = NPIX_TEST * 3;
   parameter int BYTES_GRIS   = NPIX_TEST * 1;
 
-  // carga generica de archivo (copia literal de la carga de Storage,
-  // ver verilog_uvm/dpi/dpi_accel_glue.cpp); usada por el test y el scoreboard
-  import "DPI-C" function int dpi_load_file(input string ruta,
-                                             output byte unsigned datos[],
-                                             input int max_len);
-
   // item de secuencia: una rafaga AXI4 (escritura o lectura)
   class axi_txn extends uvm_sequence_item;
     `uvm_object_utils(axi_txn)

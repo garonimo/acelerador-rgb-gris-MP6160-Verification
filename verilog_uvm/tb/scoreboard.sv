@@ -12,20 +12,22 @@ class scoreboard extends uvm_component;
     super.new(name, parent);
   endfunction
 
-  // carga "ruta_dorada" y la compara byte a byte contra "actual"
+  // carga "ruta_dorada" (texto hexadecimal, un byte por linea) y la compara
+  // byte a byte contra "actual". Se usa $readmemh en vez de dpi_load_file:
+  // un archivo binario subido a EDA Playground puede corromper bytes no-ASCII.
   task automatic verificar_bloque(string ruta_dorada, byte unsigned actual[], string nombre);
     byte unsigned golden[];
-    int           leidos;
+    int           fd;
 
     golden = new[actual.size()];
-    leidos = dpi_load_file(ruta_dorada, golden, actual.size());
-    if (leidos != actual.size()) begin
+    fd = $fopen(ruta_dorada, "r");
+    if (fd == 0) begin
       errores++;
-      `uvm_error(get_type_name(),
-        $sformatf("no se pudo cargar %s (leidos=%0d, esperado=%0d)",
-                   ruta_dorada, leidos, actual.size()))
+      `uvm_error(get_type_name(), $sformatf("no se pudo abrir %s", ruta_dorada))
       return;
     end
+    $fclose(fd);
+    $readmemh(ruta_dorada, golden);
 
     for (int i = 0; i < actual.size(); i++) begin
       if (actual[i] !== golden[i]) begin

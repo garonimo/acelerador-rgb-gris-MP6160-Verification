@@ -24,19 +24,6 @@ void dpi_rgb_to_gray(const svOpenArrayHandle rgb,
   }
 }
 
-// ---- copia literal de la carga de archivo en el constructor de Storage (storage.h) ----
-int dpi_load_file(const char* ruta, svOpenArrayHandle datos, int max_len)
-{
-  std::FILE* f = std::fopen(ruta, "rb");
-  if (!f) return -1;
-
-  auto* buf = static_cast<unsigned char*>(svGetArrayPtr(datos));
-  const std::size_t leidos = std::fread(buf, 1, static_cast<std::size_t>(max_len), f);
-  std::fclose(f);
-
-  return static_cast<int>(leidos);
-}
-
 // ---- copia literal de la rama WRITE de Storage::b_transport (storage.h) ----
 int dpi_save_output(const char* ruta, const svOpenArrayHandle datos, int len)
 {

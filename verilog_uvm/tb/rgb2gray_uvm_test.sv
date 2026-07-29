@@ -11,9 +11,13 @@ class rgb2gray_uvm_test extends base_test;
 
   virtual bfm_ctrl_if ctrl_vif;
 
-  string ruta_entrada     = "input_crop.rgb";
-  string ruta_golden_in   = "golden_ram_in_region.bin";
-  string ruta_golden_out  = "golden_ram_out_region.bin";
+  // archivos de texto hexadecimal (un byte por linea), no binarios: subir un
+  // archivo binario a EDA Playground puede corromper bytes no-ASCII (se
+  // observo el reemplazo UTF-8 U+FFFD en bytes con el bit alto en 1), asi
+  // que se usa $readmemh en vez de dpi_load_file para estos 3 vectores.
+  string ruta_entrada     = "input_crop.hex";
+  string ruta_golden_in   = "golden_ram_in_region.hex";
+  string ruta_golden_out  = "golden_ram_out_region.hex";
 
   function new(string name = "rgb2gray_uvm_test", uvm_component parent = null);
     super.new(name, parent);
@@ -27,20 +31,20 @@ class rgb2gray_uvm_test extends base_test;
 
   task run_phase(uvm_phase phase);
     byte unsigned entrada[];
-    int           leidos;
+    int           fd;
     write_image_seq wseq;
     read_check_seq  rseq_in;
     read_check_seq  rseq_out;
 
     phase.raise_objection(this);
 
-    // 1) cargar el recorte de prueba desde disco (DPI, igual que Storage)
+    // 1) cargar el recorte de prueba desde el archivo hexadecimal (texto)
     entrada = new[BYTES_RGB];
-    leidos  = dpi_load_file(ruta_entrada, entrada, BYTES_RGB);
-    if (leidos != BYTES_RGB)
-      `uvm_fatal(get_type_name(),
-        $sformatf("no se pudo cargar %s (leidos=%0d, esperado=%0d)",
-                   ruta_entrada, leidos, BYTES_RGB))
+    fd = $fopen(ruta_entrada, "r");
+    if (fd == 0)
+      `uvm_fatal(get_type_name(), $sformatf("no se pudo abrir %s", ruta_entrada))
+    $fclose(fd);
+    $readmemh(ruta_entrada, entrada);
 
     // 2) fase de carga: el agente UVM escribe la entrada en INPUT_BASE
     wseq = write_image_seq::type_id::create("wseq");

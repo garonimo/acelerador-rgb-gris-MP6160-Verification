@@ -89,25 +89,33 @@ trabajo para que el `` `include `` los encuentre.
 
 ## 3. Archivos de datos (vectores)
 
-Subir como archivos sueltos (botón "+" → "Upload" en el panel de archivos),
-**no como código**, para que queden en el directorio de ejecución (el
-testbench los abre por ruta relativa con `dpi_load_file`):
+Subir como archivos sueltos de **texto** (botón "+" → "Upload" en el panel de
+archivos), en formato hexadecimal (un byte por línea), **no los binarios
+originales** (`.rgb`/`.bin`):
 
-- `vectors/input_crop.rgb` (24 576 B)
-- `vectors/golden_ram_in_region.bin` (24 576 B)
-- `vectors/golden_ram_out_region.bin` (8192 B)
+- `vectors/input_crop.hex` (24 576 líneas)
+- `vectors/golden_ram_in_region.hex` (24 576 líneas)
+- `vectors/golden_ram_out_region.hex` (8192 líneas)
 
-Si tu cuenta de EDA Playground no permite subir binarios sueltos, conviértelos
-a texto y decodifícalos en el propio testbench (alternativa de respaldo, no
-necesaria si la subida binaria funciona):
+El testbench los carga con `$readmemh` (`tb/rgb2gray_uvm_test.sv` y
+`tb/scoreboard.sv`), no con DPI. **Por qué**: al subir los archivos binarios
+originales (`.rgb`/`.bin`) se observó que EDA Playground los trata como texto
+UTF-8, y cada byte con el bit alto en 1 (es decir, todo byte no-ASCII) se
+reemplazaba por la secuencia UTF-8 del carácter de reemplazo U+FFFD (`EF BF
+BD`), corrompiendo silenciosamente los datos antes de que el testbench los
+leyera — el error se manifestaba como un `UVM_ERROR` del `scoreboard` en
+prácticamente todos los bytes de la comparación. El hexadecimal es texto
+ASCII puro (dígitos `0`–`9`/`a`–`f`) y no sufre ese problema.
+
+Si regeneras los `.hex` a partir de los binarios (por ejemplo tras correr de
+nuevo `golden_dump.cpp`, ver [`golden/README.md`](../golden/README.md)):
 
 ```bash
-xxd -p vectors/input_crop.rgb > input_crop.hex
+cd verilog_uvm/vectors
+xxd -p -c1 input_crop.rgb              > input_crop.hex
+xxd -p -c1 golden_ram_in_region.bin    > golden_ram_in_region.hex
+xxd -p -c1 golden_ram_out_region.bin   > golden_ram_out_region.hex
 ```
-
-y usar `$readmemh` en vez de `dpi_load_file` para ese archivo puntual — no se
-documenta más a fondo porque el camino principal (subida binaria + DPI) ya
-funciona en los tres simuladores mencionados.
 
 ## 4. Comando de simulación
 

@@ -14,7 +14,7 @@ oráculo de comparación en el `scoreboard`.
 |---|---|
 | RTL (`axi_ram.sv`), VIP AXI4, BFM, DPI-C, modelo dorado | ✅ Implementado |
 | Modelo dorado (`golden_dump.cpp`) | ✅ Compilado, ejecutado y verificado bit a bit contra los vectores de HLS |
-| Corrida del testbench UVM en un simulador SystemVerilog real | ⏳ Pendiente (sin licencia local; pensado para **EDA Playground**, ver Sec. 2) |
+| Corrida del testbench UVM en EDA Playground (VCS) | 🔄 En curso: ya compila y elabora; se depuraron varios problemas de integración propios del entorno (Sec. 9.2) |
 
 > Este repositorio reúne tres entregas relacionadas; este README documenta la más
 > reciente (EC4). Las anteriores quedan intactas y se referencian como oráculo/insumo:
@@ -97,17 +97,27 @@ Resumen:
 
 1. Crear un proyecto en [edaplayground.com](https://www.edaplayground.com/) con
    **SystemVerilog + UVM 1.2**, simulador **VCS** o **Xcelium** (ambos soportan DPI-C y UVM).
-2. Panel **Design**: subir [`verilog_uvm/rtl/axi_ram.sv`](verilog_uvm/rtl/axi_ram.sv).
-3. Panel **Testbench**, en este orden: `axi_if.sv`, `bfm_ctrl_if.sv`, `axi_pkg.sv`,
-   `tb_pkg.sv`, `cpu_accel_bfm.sv`, `tb_top.sv`. Subir también los 9 archivos que esos dos
-   paquetes incluyen por `` `include `` (`axi_sequencer.sv`, `axi_driver.sv`,
-   `axi_monitor.sv`, `axi_agent.sv`, `seq_lib.sv`, `scoreboard.sv`, `env.sv`,
-   `base_test.sv`, `rgb2gray_uvm_test.sv`) como *include files*.
-4. Subir [`verilog_uvm/dpi/dpi_accel_glue.cpp`](verilog_uvm/dpi/dpi_accel_glue.cpp) (se
-   compila automáticamente junto al testbench).
-5. Subir los tres archivos de [`verilog_uvm/vectors/`](verilog_uvm/vectors/) como
-   binarios (no como código fuente).
+2. Panel **Design**: pegar el contenido de [`verilog_uvm/rtl/axi_ram.sv`](verilog_uvm/rtl/axi_ram.sv)
+   como `design.sv` (EDA Playground fuerza ese nombre).
+3. Panel **Testbench**: pegar el contenido de [`verilog_uvm/tb/tb_top.sv`](verilog_uvm/tb/tb_top.sv)
+   como `testbench.sv`. Este archivo se auto-incluye (`` `include ``) todo lo demás en el
+   orden correcto, así que además hay que **subir con su nombre original** (marcados como
+   *"include file"*, no como diseño aparte) los 14 archivos: `axi_if.sv`, `bfm_ctrl_if.sv`,
+   `axi_pkg.sv`, `tb_pkg.sv`, `cpu_accel_bfm.sv`, y los 9 que esos dos paquetes incluyen
+   (`axi_sequencer.sv`, `axi_driver.sv`, `axi_monitor.sv`, `axi_agent.sv`, `seq_lib.sv`,
+   `scoreboard.sv`, `env.sv`, `base_test.sv`, `rgb2gray_uvm_test.sv`).
+4. Subir [`verilog_uvm/dpi/dpi_accel_glue.cpp`](verilog_uvm/dpi/dpi_accel_glue.cpp) (y su
+   `.h`) **sin** marcarlo como include file, y agregar en "Compile Options":
+   `-sysc +incdir+. dpi_accel_glue.cpp` (necesario para que VCS enlace el objeto DPI).
+5. Subir los tres archivos hexadecimales de [`verilog_uvm/vectors/`](verilog_uvm/vectors/)
+   (`input_crop.hex`, `golden_ram_in_region.hex`, `golden_ram_out_region.hex`) como
+   archivos de texto — **no** los `.rgb`/`.bin` binarios: EDA Playground corrompe los
+   bytes con el bit alto en 1 al tratarlos como texto UTF-8, y el testbench los carga con
+   `$readmemh` precisamente para evitar ese problema.
 6. Argumentos de simulación: `+UVM_TESTNAME=rgb2gray_uvm_test`.
+
+Guía con el detalle completo y los errores típicos (con su causa y solución) en
+[`verilog_uvm/scripts/run_edaplayground.md`](verilog_uvm/scripts/run_edaplayground.md).
 
 ### 2.2 Regenerar el modelo dorado localmente
 
@@ -185,14 +195,20 @@ Detalle del árbol de `verilog_uvm/` en la [sección 4](#4-organización-de-los-
 
 ### 4.3 `verilog_uvm/dpi/` — puente DPI-C
 
-`dpi_accel_glue.h`/`.cpp` — tres funciones `extern "C"`, cada una copia literal de la
+`dpi_accel_glue.h`/`.cpp` — dos funciones `extern "C"`, cada una copia literal de la
 lógica ya verificada en `Basic_cpu-main`:
 
 | Función DPI | Copia de |
 |---|---|
 | `dpi_rgb_to_gray` | `Accelerator::rgb_a_gris` (BT.601 entero) |
-| `dpi_load_file` | Carga de archivo en el constructor de `Storage` |
 | `dpi_save_output` | Rama de escritura de `Storage::b_transport` |
+
+> La carga de los vectores de entrada (`input_crop.hex` y los dos volcados
+> dorados) **no** usa DPI: se hace con `$readmemh` sobre archivos de texto
+> hexadecimal. Subir el binario original (`.rgb`/`.bin`) a EDA Playground
+> corrompía los bytes con el bit alto en 1 (los reemplazaba por la secuencia
+> UTF-8 de U+FFFD), porque la plataforma trata los archivos subidos como
+> texto UTF-8. El hexadecimal es texto ASCII puro y no sufre ese problema.
 
 ### 4.4 `verilog_uvm/golden/` — modelo dorado
 
@@ -329,13 +345,21 @@ Esto confirma, con **tres implementaciones independientes** (TLM/SystemC de
 8192 píxeles y la fórmula BT.601 concuerdan exactamente. Ver el detalle en
 [`verilog_uvm/golden/README.md`](verilog_uvm/golden/README.md).
 
-### 9.2 Corrida del testbench UVM
+### 9.2 Corrida del testbench UVM en EDA Playground
 
-Pendiente de ejecutarse en un simulador SystemVerilog real (no hay licencia local de
-VCS/Xcelium/Questa en este entorno). El código se escribió siguiendo IEEE 1800/UVM 1.2
-estándar y se revisó manualmente, pero **no ha sido compilado ni simulado todavía**. La
-primera corrida real se hará en EDA Playground siguiendo la Sec. 2.1; si el `scoreboard`
-reporta `UVM_FATAL`, esta sección se actualizará con la traza y la corrección aplicada.
+No hay licencia local de VCS/Xcelium/Questa, así que la primera corrida real se hizo en
+**EDA Playground** (VCS). El proceso encontró y resolvió varios problemas típicos de ese
+entorno, no de la lógica del diseño:
+
+| Problema | Causa | Solución |
+|---|---|---|
+| `Package not defined` (`axi_pkg`/`tb_pkg`) y `ADDR_WIDTH`/`DATA_WIDTH` no declarados | EDA Playground no garantiza que compile los paquetes antes que `testbench.sv` cuando son archivos separados en el panel. | `tb_top.sv` se auto-incluye (`` `include ``) `axi_if.sv`, `bfm_ctrl_if.sv`, `axi_pkg.sv`, `tb_pkg.sv` y `cpu_accel_bfm.sv` en el orden correcto, sin depender del panel; esos archivos se suben aparte solo como *include file*. |
+| `Error-[SE] Syntax error ... token is 'buf'` en `cpu_accel_bfm.sv` | `buf` es palabra reservada de Verilog (primitiva de compuerta `buf`/`bufif0`/`bufif1`), no se puede usar como nombre de variable. | Renombrada la variable a `datos` en las tasks `leer_bloque`/`escribir_bloque`. |
+| `Error-[DPI-DIFNF] DPI import function not found` en tiempo de ejecución | `dpi_accel_glue.cpp` estaba subido pero EDA Playground no lo compila/enlaza como objeto DPI solo por estar presente. | Agregar en "Compile Options": `-sysc +incdir+. dpi_accel_glue.cpp`. |
+| El `scoreboard` reportaba error en *todos* los bytes de `OUTPUT_BASE`, con valores "ruidosos" (no una imagen en escala de grises real) | Los vectores binarios (`input_crop.rgb`) subidos a EDA Playground se corrompían: la plataforma trata los archivos subidos como texto UTF-8, y reemplazaba cada byte con el bit alto en 1 por la secuencia UTF-8 de U+FFFD (3 bytes). Confirmado byte a byte con `$display` de depuración temporal en `cpu_accel_bfm.sv` y aplicando la fórmula BT.601 a mano sobre los bytes corruptos, que reproducía exactamente el valor erróneo reportado. | Los 3 vectores se convirtieron a texto hexadecimal (`xxd -p -c1`, un byte por línea) y se cargan con `$readmemh` en vez de con la función DPI `dpi_load_file` (que se eliminó por quedar sin uso; ver Sec. 4.3). El hexadecimal es texto ASCII puro y no sufre ese problema. |
+
+Esta sección se actualizará con la traza final una vez confirmado el resultado "PASS" del
+`scoreboard` en EDA Playground.
 
 ---
 
