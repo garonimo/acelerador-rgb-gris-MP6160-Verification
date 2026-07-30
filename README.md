@@ -22,6 +22,7 @@ metodo comparación en el `scoreboard`.
 >   segunda evaluación: el mismo acelerador en Vitis HLS y en un prototipo virtual
 >   ARM64+gem5. Aportan los vectores de prueba recortados (`hls/tb/vectors/`) que EC4
 >   reutiliza para acelerar la simulación.
+> - Implementación en EDA playground: https://www.edaplayground.com/x/nTZx
 
 ---
 
