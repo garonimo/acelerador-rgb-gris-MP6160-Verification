@@ -4,17 +4,14 @@
 II Cuatrimestre 2026 · Tecnológico de Costa Rica
 Profesor: Luis G. León-Vega, Ph.D.
 
-Reimplementa el módulo de RAM del sistema TLM-2.0 de una evaluación anterior
-(`Basic_cpu-main/`) como un esclavo **AXI4 Full en SystemVerilog**, lo verifica con un
-testbench **UVM**, e integra la lógica de CPU/acelerador de ese mismo sistema mediante
-**DPI-C**. Un **modelo dorado** (volcado offline de la RAM real en SystemC) sirve como
-oráculo de comparación en el `scoreboard`.
+En esta tarea se reimplementa el módulo de RAM del sistema TLM-2.0 de una tarea anterior como un esclavo **AXI4 Full en SystemVerilog**, se verifica con un testbench **UVM**, y se integra la lógica de CPU/acelerador de ese mismo sistema mediante **DPI-C**. Un **modelo golden** (un archivo hexadecimal offline de la RAM real en SystemC) sirve como
+metodo comparación en el `scoreboard`.
 
 | Parte | Estado |
 |---|---|
-| RTL (`axi_ram.sv`), VIP AXI4, BFM, DPI-C, modelo dorado | ✅ Implementado |
-| Modelo dorado (`golden_dump.cpp`) | ✅ Compilado, ejecutado y verificado bit a bit contra los vectores de HLS |
-| Corrida del testbench UVM en EDA Playground (VCS) | 🔄 En curso: ya compila y elabora; se depuraron varios problemas de integración propios del entorno (Sec. 9.2) |
+| RTL (`axi_ram.sv`), VIP AXI4, BFM, DPI-C, modelo dorado(golden) | Implementado |
+| Modelo dorado (`golden_dump.cpp`) | Compilado, ejecutado y verificado bit a bit contra los vectores de HLS |
+| Corrida del testbench UVM en EDA Playground (VCS) |  **PASS**: `scoreboard` confirma RAM RTL (AXI4) == RAM SystemC (golden dump), 0 `UVM_ERROR` / 0 `UVM_FATAL` (Sec. 9.2) |
 
 > Este repositorio reúne tres entregas relacionadas; este README documenta la más
 > reciente (EC4). Las anteriores quedan intactas y se referencian como oráculo/insumo:
@@ -25,7 +22,6 @@ oráculo de comparación en el `scoreboard`.
 >   segunda evaluación: el mismo acelerador en Vitis HLS y en un prototipo virtual
 >   ARM64+gem5. Aportan los vectores de prueba recortados (`hls/tb/vectors/`) que EC4
 >   reutiliza para acelerar la simulación.
-> - Planeamiento previo a esta implementación: [`verificacion_copilot.md`](verificacion_copilot.md).
 
 ---
 
@@ -55,7 +51,7 @@ modela una **RAM real** (buffer con `b_transport()`, no acceso directo a archivo
 ### Flujo verificado (4 fases, orquestadas por `rgb2gray_uvm_test`)
 
 1. **Carga**: un agente UVM (`write_image_seq`) escribe la imagen recortada de entrada
-   (`input_crop.rgb`) en la RAM AXI4 (`INPUT_BASE`).
+   (`input_crop.hex`, texto hexadecimal cargado con `$readmemh`) en la RAM AXI4 (`INPUT_BASE`).
 2. **Cómputo**: se cede el bus a `cpu_accel_bfm` (maestro AXI4 en SV plano), que lee
    `INPUT_BASE`, convierte a escala de grises por DPI-C (`dpi_rgb_to_gray`, copia literal
    de `Accelerator::rgb_a_gris`) y escribe el resultado en `OUTPUT_BASE`.
@@ -80,8 +76,8 @@ No hay garantía de que EDA Playground soporte co-simulación SystemC+SV en tiem
 el enunciado no lo exige. En su lugar, la lógica ya verificada de `Basic_cpu-main` se
 reutiliza **dos veces sin modificarla**:
 
-- Como cuerpo literal de las funciones DPI (`dpi_rgb_to_gray`, y el copiado de la carga/
-  guardado de archivo de `storage.h`).
+- Como cuerpo literal de las funciones DPI (`dpi_rgb_to_gray`, y `dpi_save_output`,
+  copiado de la escritura de archivo de `storage.h`).
 - Como generador **offline** del modelo dorado ([`verilog_uvm/golden/golden_dump.cpp`](verilog_uvm/golden/golden_dump.cpp)):
   corre el sistema TLM completo una vez, y vuelca a disco el contenido de `Ram::data` en
   las regiones de entrada y salida. Esos volcados son el oráculo que usa el `scoreboard`.
@@ -130,9 +126,11 @@ cmake --build build -j$(nproc)
 LD_LIBRARY_PATH="$SYSTEMC_HOME/lib:$LD_LIBRARY_PATH" ./build/golden_dump
 ```
 
-Genera `golden_ram_in_region.bin` y `golden_ram_out_region.bin`; copiarlos a
-`verilog_uvm/vectors/` (junto con `input_crop.rgb`) es lo que ya se hizo para esta
-entrega. Detalle y resultado de la verificación cruzada en
+Genera `golden_ram_in_region.bin` y `golden_ram_out_region.bin`; convertirlos a texto
+hexadecimal (`xxd -p -c1`) y copiarlos a `verilog_uvm/vectors/` (junto con
+`input_crop.hex`) es lo que ya se hizo para esta entrega — el testbench UVM carga
+los vectores con `$readmemh`, no con los binarios originales (ver Sec. 2.1, paso 5).
+Detalle y resultado de la verificación cruzada en
 [`verilog_uvm/golden/README.md`](verilog_uvm/golden/README.md).
 
 ### 2.3 Simulador local con licencia (VCS / Xcelium / Questa)
@@ -146,9 +144,8 @@ que usan la lista de archivos [`verilog_uvm/scripts/filelist.f`](verilog_uvm/scr
 ## 3. Organización del repositorio
 
 ```
-repo-acc-verif/
+acelerador-rgb-gris-MP6160-Verification/
 ├── README.md                          Este documento (EC4)
-├── verificacion_copilot.md            Planeamiento previo a la implementación
 │
 ├── verilog_uvm/                       EVALUACIÓN CORTA 4  (esta entrega)
 │   ├── README.md                      Arquitectura, mapa de memoria, cómo correr
@@ -156,7 +153,7 @@ repo-acc-verif/
 │   ├── tb/                            Testbench SystemVerilog + UVM (ver Sec. 4)
 │   ├── dpi/dpi_accel_glue.{h,cpp}     Puente DPI-C hacia la lógica de Basic_cpu-main
 │   ├── golden/golden_dump.cpp         Generador offline del modelo dorado (SystemC)
-│   ├── vectors/                       input_crop.rgb + los dos volcados dorados
+│   ├── vectors/                       input_crop.hex + los dos volcados dorados (hex)
 │   └── scripts/                       filelist.f, build_dpi.sh, run_*.sh, run_edaplayground.md
 │
 ├── Basic_cpu-main/                    Evaluación base: TLM-2.0 con RAM real (oráculo de EC4)
@@ -216,7 +213,9 @@ lógica ya verificada en `Basic_cpu-main`:
 (`accelerator.h`, `bus.h`, `common.h`, `cpu.h`, `ram.h`, `storage.h`), instancia los
 mismos 5 módulos que `Basic_cpu-main/main.cpp`, corre `sc_start()` y vuelca
 `Ram::data` en las regiones de entrada/salida a `golden_ram_in_region.bin` /
-`golden_ram_out_region.bin`. Detalle y resultado en
+`golden_ram_out_region.bin`. Esos binarios se convierten después a texto
+hexadecimal (`vectors/*.hex`) para poder subirlos a EDA Playground sin
+corrupción (ver Sec. 4.3). Detalle y resultado en
 [`verilog_uvm/golden/README.md`](verilog_uvm/golden/README.md).
 
 ---
@@ -247,7 +246,7 @@ nunca están activos a la vez (sin árbitro: el orden de fases del test lo garan
         |          ^ start/done (bfm_ctrl_if)             |         |
         +----------|------------------------------------- |---------+
                    test (rgb2gray_uvm_test)          scoreboard compara
-                                                     contra golden_ram_*.bin
+                                                     contra golden_ram_*.hex
 ```
 
 Versión narrada y con más detalle en [`verilog_uvm/README.md`](verilog_uvm/README.md#arquitectura).
@@ -260,7 +259,7 @@ Versión narrada y con más detalle en [`verilog_uvm/README.md`](verilog_uvm/REA
  rgb2gray_uvm_test      env.agent (UVM)        axi_ram (DUT)      cpu_accel_bfm      scoreboard
         |                     |                     |                    |               |
         |--write_image_seq--->|---AXI4 W (AW/W/B)-->|                    |               |
-        |   (input_crop.rgb)  |                     |  (guarda en mem)   |               |
+        |   (input_crop.hex)   |                     |  (guarda en mem)   |               |
         |                     |                     |                    |               |
         |--ctrl.start=1------------------------------------------------->|               |
         |                     |                     |<--AXI4 R (AR/R)----|               |
@@ -276,8 +275,8 @@ Versión narrada y con más detalle en [`verilog_uvm/README.md`](verilog_uvm/REA
         |--read_check_seq---->|---AXI4 R (AR/R)---->|                    |               |
         |   (OUTPUT_BASE)     |<--------------------|                    |               |
         |                     |                     |                    |               |
-        |--verificar_bloque(golden_ram_in_region.bin, ...)------------------------------->|
-        |--verificar_bloque(golden_ram_out_region.bin, ...)------------------------------>|
+        |--verificar_bloque(golden_ram_in_region.hex, ...)------------------------------->|
+        |--verificar_bloque(golden_ram_out_region.hex, ...)------------------------------>|
         |--resumen() ---------------------------------------------------------------->UVM_INFO/FATAL
 ```
 
@@ -337,8 +336,8 @@ $ cmp golden_ram_out_region.bin hls/tb/vectors/ref_crop.raw     # MATCH
 
 | Comparación | Resultado |
 |---|---|
-| `golden_ram_in_region.bin` (volcado de `Ram::data` en `INPUT_BASE`) vs. `input_crop.rgb` (vector de HLS) | ✅ Idénticos byte a byte |
-| `golden_ram_out_region.bin` (volcado de `Ram::data` en `OUTPUT_BASE`) vs. `ref_crop.raw` (referencia de HLS) | ✅ Idénticos byte a byte |
+| `golden_ram_in_region.bin` (volcado de `Ram::data` en `INPUT_BASE`) vs. `input_crop.rgb` (vector de HLS) | Idénticos byte a byte |
+| `golden_ram_out_region.bin` (volcado de `Ram::data` en `OUTPUT_BASE`) vs. `ref_crop.raw` (referencia de HLS) | Idénticos byte a byte |
 
 Esto confirma, con **tres implementaciones independientes** (TLM/SystemC de
 `Basic_cpu-main`, HLS y el volcado dorado de EC4), que el mapa de memoria, el recorte de
@@ -347,9 +346,40 @@ Esto confirma, con **tres implementaciones independientes** (TLM/SystemC de
 
 ### 9.2 Corrida del testbench UVM en EDA Playground
 
-No hay licencia local de VCS/Xcelium/Questa, así que la primera corrida real se hizo en
-**EDA Playground** (VCS). El proceso encontró y resolvió varios problemas típicos de ese
-entorno, no de la lógica del diseño:
+No hay licencia local de VCS/Xcelium/Questa, así que la corrida se realizó en
+**EDA Playground** con el simulador **Synopsys VCS X-2025.06** y **UVM 1.2**. El resultado es
+**PASS**: el `scoreboard` confirma que la RAM RTL en AXI4 produce, byte a byte, el mismo
+contenido que el modelo dorado volcado desde la RAM SystemC de `Basic_cpu-main`.
+
+Corrida reproducible en línea: <https://www.edaplayground.com/x/nTZx>
+
+#### Traza de la simulación
+
+```
+UVM_INFO @ 0: reporter [RNTST] Running test rgb2gray_uvm_test...
+UVM_INFO rgb2gray_uvm_test.sv(54) @ 62395:  uvm_test_top [rgb2gray_uvm_test] imagen de entrada escrita en RAM (AXI4)
+UVM_INFO rgb2gray_uvm_test.sv(60) @ 165755: uvm_test_top [rgb2gray_uvm_test] cpu_accel_bfm termino (conversion + guardado)
+UVM_INFO scoreboard.sv(45) @ 248315:        uvm_test_top.env.sb [scoreboard] PASS: RAM RTL (AXI4) == RAM SystemC (golden dump)
+
+--- UVM Report Summary ---
+** Report counts by severity
+UVM_INFO    : 6
+UVM_WARNING : 0
+UVM_ERROR   : 0
+UVM_FATAL   : 0
+
+$finish at simulation time 248315
+```
+
+Los tres hitos de la traza corresponden a las fases del flujo descritas en la Sec. 1: la carga
+de la imagen en la RAM AXI4 (@62395), el cómputo y guardado por el BFM (@165755) y la
+verificación final contra el modelo dorado (@248315). El conteo `UVM_ERROR : 0` /
+`UVM_FATAL : 0` es la condición de aprobación del testbench.
+
+#### Problemas de integración resueltos durante la puesta a punto
+
+Antes de llegar al PASS se encontraron y resolvieron varios problemas propios del entorno de
+EDA Playground, no de la lógica del diseño:
 
 | Problema | Causa | Solución |
 |---|---|---|
@@ -357,9 +387,6 @@ entorno, no de la lógica del diseño:
 | `Error-[SE] Syntax error ... token is 'buf'` en `cpu_accel_bfm.sv` | `buf` es palabra reservada de Verilog (primitiva de compuerta `buf`/`bufif0`/`bufif1`), no se puede usar como nombre de variable. | Renombrada la variable a `datos` en las tasks `leer_bloque`/`escribir_bloque`. |
 | `Error-[DPI-DIFNF] DPI import function not found` en tiempo de ejecución | `dpi_accel_glue.cpp` estaba subido pero EDA Playground no lo compila/enlaza como objeto DPI solo por estar presente. | Agregar en "Compile Options": `-sysc +incdir+. dpi_accel_glue.cpp`. |
 | El `scoreboard` reportaba error en *todos* los bytes de `OUTPUT_BASE`, con valores "ruidosos" (no una imagen en escala de grises real) | Los vectores binarios (`input_crop.rgb`) subidos a EDA Playground se corrompían: la plataforma trata los archivos subidos como texto UTF-8, y reemplazaba cada byte con el bit alto en 1 por la secuencia UTF-8 de U+FFFD (3 bytes). Confirmado byte a byte con `$display` de depuración temporal en `cpu_accel_bfm.sv` y aplicando la fórmula BT.601 a mano sobre los bytes corruptos, que reproducía exactamente el valor erróneo reportado. | Los 3 vectores se convirtieron a texto hexadecimal (`xxd -p -c1`, un byte por línea) y se cargan con `$readmemh` en vez de con la función DPI `dpi_load_file` (que se eliminó por quedar sin uso; ver Sec. 4.3). El hexadecimal es texto ASCII puro y no sufre ese problema. |
-
-Esta sección se actualizará con la traza final una vez confirmado el resultado "PASS" del
-`scoreboard` en EDA Playground.
 
 ---
 
@@ -389,4 +416,31 @@ comparación dentro del propio testbench, en vez de compararla manualmente con `
 ---
 
 ## 11. Declaración sobre el uso de Inteligencia Artificial
-Se utilizó la herramienta de github copilot para el planeamiento de como desarrollar esta tarea, desarrollo de secciones de codigo, desarrollo de scripts, creacion de parte de la documentacion, depuracion y analisos de codigo.
+
+De acuerdo con lo establecido en el enunciado, se declara el uso de herramientas de
+Inteligencia Artificial durante el desarrollo de esta evaluación. Se utilizó **GitHub Copilot**,
+con los siguientes propósitos:
+
+- **Planeamiento de la arquitectura de verificación.** Se consultó cómo estructurar un entorno
+  UVM para verificar una RAM AXI4 e integrar la lógica de un sistema TLM existente mediante
+  DPI-C. *Prompt representativo:* «cómo verificar con UVM un esclavo de RAM AXI4 en
+  SystemVerilog y reutilizar por DPI-C la función de conversión de un modelo SystemC previo».
+
+- **Generación de código base.** A partir del sistema `Basic_cpu-main`, se generó con asistencia
+  el andamiaje del DUT (`axi_ram.sv`), del VIP AXI4 (driver, monitor, sequencer, agente), del
+  `scoreboard`, del `cpu_accel_bfm` y del puente DPI-C (`dpi_accel_glue.cpp`), así como el
+  generador del modelo dorado (`golden_dump.cpp`). *Prompt representativo:* «escribir un driver
+  AXI4 UVM que fragmente una transacción de alto nivel en ráfagas INCR y un scoreboard que
+  compare contra un volcado de referencia».
+
+- **Depuración.** Se utilizó asistencia para diagnosticar los problemas de integración
+  documentados en la Sec. 9.2: el orden de compilación de paquetes, la palabra reservada `buf`,
+  el enlace del objeto DPI y la corrupción de los vectores binarios en EDA Playground.
+
+- **Scripts y documentación.** Los scripts de ejecución (`run_*.sh`, `filelist.f`,
+  `run_edaplayground.md`) y la redacción de esta documentación técnica se elaboraron con
+  asistencia a partir del código del proyecto.
+
+La totalidad del código y de los resultados fue revisada y verificada por el equipo. La fórmula
+de conversión BT.601, el mapa de memoria y el sistema base `Basic_cpu-main` provienen del
+trabajo propio desarrollado en las evaluaciones anteriores.
