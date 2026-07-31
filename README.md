@@ -59,7 +59,7 @@ modela una **RAM real** (buffer con `b_transport()`, no acceso directo a archivo
 3. **Persistencia**: `cpu_accel_bfm` relee `OUTPUT_BASE` y llama a `dpi_save_output` para
    escribir `output_crop_gray.raw` a disco, igual que `Storage::b_transport` en escritura.
 4. **Verificación**: el agente UVM relee `INPUT_BASE` y `OUTPUT_BASE`; el `scoreboard`
-   compara byte a byte contra el **modelo dorado** (volcado real de `Ram::data` en
+   compara byte a byte contra el **modelo golden** (volcado real de `Ram::data` en
    `Basic_cpu-main`) y reporta `UVM_ERROR`/`UVM_FATAL` ante cualquier discrepancia.
 
 ### Conversión implementada
@@ -71,12 +71,12 @@ literalmente en la función DPI `dpi_rgb_to_gray`:
 Y = (77·R + 150·G + 29·B) >> 8
 ```
 
-### Por qué un modelo dorado en vez de co-simular SystemC en vivo
+### Por qué un modelo golden en vez de co-simular SystemC en vivo
 
 Se tuvieron muchos problemas a la hora de intentar correr systemC en paralelo con UVM, 
 pareciera ser un flujo muy pesado para una herramienta gratuita como EDA playground.
 Según lo que pudimos investigar: No hay garantía de que EDA Playground soporte co-simulación 
-SystemC+SV en tiempo real, y el enunciado no lo exige. por lo que se decidió implementar la
+SystemC+SV en tiempo real, y el enunciado no lo exige. Por lo que se decidió implementar la
 tarea de la siguiente manera: la lógica ya verificada de `Basic_cpu-main`(Tarea 2) se
 reutiliza **dos veces sin modificarla**:
 
@@ -89,7 +89,7 @@ reutiliza **dos veces sin modificarla**:
   final de la conversión y se guardan en un archivo. hex. Después esos vectores son leidos por el 
   scoreboard y comparados con el resultado final que se guarda en la memoria RAM creada en Verilog.
 - Si se diera alguna diferencia entre los vectores y el resultado obtenido en Verilog se lanza un UVM_ERROR,
-  de lo contrario no oasa nada. El test pasa si no hay ningún UVM_ERROR.
+  de lo contrario no pasa nada. El test pasa si no hay ningún UVM_ERROR.
 
 ---
 
