@@ -73,15 +73,23 @@ Y = (77·R + 150·G + 29·B) >> 8
 
 ### Por qué un modelo dorado en vez de co-simular SystemC en vivo
 
-No hay garantía de que EDA Playground soporte co-simulación SystemC+SV en tiempo real, y
-el enunciado no lo exige. En su lugar, la lógica ya verificada de `Basic_cpu-main` se
+Se tuvieron muchos problemas a la hora de intentar correr systemC en paralelo con UVM, 
+pareciera ser un flujo muy pesado para una herramienta gratuita como EDA playground.
+Según lo que pudimos investigar: No hay garantía de que EDA Playground soporte co-simulación 
+SystemC+SV en tiempo real, y el enunciado no lo exige. por lo que se decidió implementar la
+tarea de la siguiente manera: la lógica ya verificada de `Basic_cpu-main`(Tarea 2) se
 reutiliza **dos veces sin modificarla**:
 
 - Como cuerpo literal de las funciones DPI (`dpi_rgb_to_gray`, y `dpi_save_output`,
   copiado de la escritura de archivo de `storage.h`).
 - Como generador **offline** del modelo dorado ([`verilog_uvm/golden/golden_dump.cpp`](verilog_uvm/golden/golden_dump.cpp)):
   corre el sistema TLM completo una vez, y vuelca a disco el contenido de `Ram::data` en
-  las regiones de entrada y salida. Esos volcados son el oráculo que usa el `scoreboard`.
+  las regiones de entrada y salida. Esos volcados son el modelo que usa el `scoreboard`.
+- Es decir de corre el modelo de la tarea 1 para generar una serie de vectores que son el resultado
+  final de la conversión y se guardan en un archivo. hex. Después esos vectores son leidos por el 
+  scoreboard y comparados con el resultado final que se guarda en la memoria RAM creada en Verilog.
+- Si se diera alguna diferencia entre los vectores y el resultado obtenido en Verilog se lanza un UVM_ERROR,
+  de lo contrario no oasa nada. El test pasa si no hay ningún UVM_ERROR.
 
 ---
 
